@@ -1,0 +1,66 @@
+﻿<Page
+    x:Class="Sockets.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Sockets"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel>
+            <TextBlock Margin="9.6,0" Style="{StaticResource TitleTextBlockStyle}" Text="TCP socket example"/>
+            <TextBlock Margin="7.2,0,0,0" Style="{StaticResource HeaderTextBlockStyle}" Text="StreamSocket &amp; StreamSocketListener"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="3*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBox PlaceholderText="Server Address" x:Name="ServerAddress"
+                         Text="{x:Bind viewModel.ServerAddress, Mode=TwoWay}"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox PlaceholderText="Server Port" x:Name="ServerPort"
+                             Text="{x:Bind viewModel.ServerPort, Mode=TwoWay}"/>
+                    <Button Content="Start Client" x:Name="startClientButton" 
+                            Click="startClientButton_Click"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                <TextBox PlaceholderText="Messsage" x:Name="ClientMsg"
+                             Text="{x:Bind viewModel.ClientMessage, Mode=TwoWay}"/>
+                <Button Content="Send Client Message" x:Name="sendClientMsgButton" 
+                            Click="sendClientMsgButton_Click"/>
+            </StackPanel>
+            </StackPanel>
+            <StackPanel Grid.Row="1">
+                <TextBlock Margin="9.6" Style="{StaticResource SubtitleTextBlockStyle}" 
+                           Text="client"/>
+                <ListBox x:Name="clientListBox"  Margin="9.6" ScrollViewer.VerticalScrollMode="Enabled"
+                         ItemsSource="{x:Bind viewModel.ClientItems}"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">                
+                <TextBox PlaceholderText="Server Port" x:Name="Port"
+                         Text="{x:Bind viewModel.PortNumber, Mode=TwoWay}"/>
+                <Button Content="Start Server" x:Name="startServerButton" 
+                        Click="startServerButton_Click"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Grid.Row="1">
+                <TextBlock  Margin="9.6" Style="{StaticResource SubtitleTextBlockStyle}" 
+                            Text="server"/>
+                <ListBox x:Name="serverListBox"  Margin="9.6" ScrollViewer.VerticalScrollMode="Enabled"
+                         ItemsSource="{x:Bind viewModel.ServerItems}"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>
