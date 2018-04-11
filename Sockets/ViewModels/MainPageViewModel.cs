@@ -25,6 +25,8 @@ namespace Sockets.ViewModels
         public bool clientIsConnected = false;
 
         private StreamSocketListener streamSocketListener;
+        private StreamReader streamReader;
+        private StreamWriter streamWriter;
 
         private StreamSocket streamSocket;
         private Stream outputStream;
@@ -59,30 +61,41 @@ namespace Sockets.ViewModels
         }
         private async void StreamSocketListener_ConnectionReceived(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
         {
-            string request;
-            using (var streamReader = new StreamReader(args.Socket.InputStream.AsStreamForRead()))
-            {
-                request = await streamReader.ReadLineAsync();
-            }
-
-            await CoreApplication.MainView.CoreWindow.
-                Dispatcher.RunAsync(CoreDispatcherPriority.Normal, 
-                () => ServerItems.Add(string.Format("server received the request: \"{0}\"", request)));
-
-            // Echo the request back as the response.
-            using (Stream ServeroutputStream = args.Socket.OutputStream.AsStreamForWrite())
-            {
-                using (var streamWriter = new StreamWriter(ServeroutputStream))
+            while (serverIsRunning)
+            { 
+                try
                 {
+                    string request;
+                    if (streamReader == null)
+                        streamReader = new StreamReader(args.Socket.InputStream.AsStreamForRead());
+
+                    request = await streamReader.ReadLineAsync();
+
+
+                    await CoreApplication.MainView.CoreWindow.
+                        Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                        () => ServerItems.Add(string.Format("server received the request: \"{0}\"", request)));
+
+                    // Echo the request back as the response.
+                    if (streamWriter == null)
+                    {
+                        Stream ServeroutputStream = args.Socket.OutputStream.AsStreamForWrite();
+                        streamWriter = new StreamWriter(ServeroutputStream);
+                    }
+
                     await streamWriter.WriteLineAsync(request);
                     await streamWriter.FlushAsync();
-                }
-            }
 
-            await CoreApplication.MainView.CoreWindow.Dispatcher.
-                RunAsync(CoreDispatcherPriority.Normal, 
-                () => ServerItems.Add(string.Format("server sent back the response: \"{0}\"", request)));
-                       
+                    await CoreApplication.MainView.CoreWindow.Dispatcher.
+                        RunAsync(CoreDispatcherPriority.Normal,
+                        () => ServerItems.Add(string.Format("server sent back the response: \"{0}\"", request)));
+                }
+                catch (Exception ex)
+                {
+                    SocketErrorStatus webErrorStatus = SocketError.GetStatus(ex.GetBaseException().HResult);
+                    ServerItems.Add(webErrorStatus.ToString() != "Unknown" ? webErrorStatus.ToString() : ex.Message);
+                }
+            }                       
         }
 
         public async void StopServer()
@@ -123,24 +136,22 @@ namespace Sockets.ViewModels
                 //string request = "Hello, World!";
                 if(outputStream == null)
                     outputStream = streamSocket.OutputStream.AsStreamForWrite();
-                
-                using (var streamWriter = new StreamWriter(outputStream))
-                {
-                    await streamWriter.WriteLineAsync(ClientMessage);
-                    await streamWriter.FlushAsync();
-                }
-                
 
+                var streamWriter = new StreamWriter(outputStream);
+                
+                await streamWriter.WriteLineAsync(ClientMessage);
+                await streamWriter.FlushAsync();
+                
                 ClientItems.Add(string.Format("client sent the request: \"{0}\"", ClientMessage));
 
                 // Read data from the echo server.
                 string response;
                 if (inputStream == null)
-                    inputStream = streamSocket.InputStream.AsStreamForRead();                
-                using (StreamReader streamReader = new StreamReader(inputStream))
-                {
-                    response = await streamReader.ReadLineAsync();
-                }
+                    inputStream = streamSocket.InputStream.AsStreamForRead();
+                StreamReader streamReader = new StreamReader(inputStream);
+
+                response = await streamReader.ReadLineAsync();
+                
 
                 ClientItems.Add(string.Format("client received the response: \"{0}\" ", response));
             }
@@ -151,11 +162,9 @@ namespace Sockets.ViewModels
             }
         }
 
-        public async void CloseClient()
+        public void CloseClient()
         {
-            //await inputStream.FlushAsync();
             inputStream.Dispose();
-            //await outputStream.FlushAsync();
             outputStream.Dispose();
             streamSocket.Dispose();
             clientIsConnected = false;
