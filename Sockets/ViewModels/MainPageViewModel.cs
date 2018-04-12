@@ -62,6 +62,11 @@ namespace Sockets.ViewModels
         private async void StreamSocketListener_ConnectionReceived(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
         {
             bool clientconnected = true;
+
+            await CoreApplication.MainView.CoreWindow.
+                        Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
+                        () => ServerItems.Add(string.Format("client connected from {0}:{1} ...", 
+                        args.Socket.Information.RemoteAddress, args.Socket.Information.RemotePort))); 
             while (clientconnected)
             { 
                 try
@@ -94,10 +99,7 @@ namespace Sockets.ViewModels
                 catch (Exception ex)
                 {
                     clientconnected = false;
-                    streamWriter.Dispose();
-                    streamReader.Dispose();
-                    streamWriter=null;
-                    streamReader=null;
+                    CloseServerConnection();
                     SocketErrorStatus webErrorStatus = SocketError.GetStatus(ex.GetBaseException().HResult);
                     await CoreApplication.MainView.CoreWindow.Dispatcher.
                         RunAsync(CoreDispatcherPriority.Normal,
@@ -105,12 +107,18 @@ namespace Sockets.ViewModels
                 }
             }                       
         }
+        public void CloseServerConnection()
+        {
+            streamWriter?.Dispose();
+            streamReader?.Dispose();
+            streamWriter = null;
+            streamReader = null;
+        }
 
         public async void StopServer()
         {
-            streamWriter.Dispose();
-            streamReader.Dispose();
-            streamSocketListener.Dispose();
+            CloseServerConnection();
+            streamSocketListener?.Dispose();            
             serverIsRunning = false;
             await CoreApplication.MainView.CoreWindow.
                 Dispatcher.RunAsync(CoreDispatcherPriority.Normal,
@@ -162,20 +170,20 @@ namespace Sockets.ViewModels
 
                 response = await streamReader.ReadLineAsync();
                 
-
                 ClientItems.Add(string.Format("client received the response: \"{0}\" ", response));
             }
             catch (Exception ex)
             {
                 SocketErrorStatus webErrorStatus = SocketError.GetStatus(ex.GetBaseException().HResult);
                 ClientItems.Add(webErrorStatus.ToString() != "Unknown" ? webErrorStatus.ToString() : ex.Message);
+                CloseClient();
             }
         }
 
         public void CloseClient()
         {
-            inputStream.Dispose();
-            outputStream.Dispose();
+            inputStream?.Dispose();
+            outputStream?.Dispose();
             inputStream=null;
             outputStream=null;
             streamSocket.Dispose();
